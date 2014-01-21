@@ -191,7 +191,8 @@ public class App
 				}
             	
         	}
-        	
+
+	    	sb.append("import javax.ws.rs.QueryParam;\n");
 	    	sb.append("import com.gwtplatform.dispatch.shared.Action;\n");
 	    	sb.append("import com.gwtplatform.dispatch.shared.rest.RestService;\n");
 	    	
@@ -240,8 +241,16 @@ public class App
             	int i = 1;
             	int length = params.size();
             	for(Object paramObj : params.keySet()) {
-                	String paramName = (String)paramObj;
+                	String paramName = (String)paramObj;                	
                 	JSONObject param = (JSONObject)params.get(paramName);
+                	                	
+                	// Add @QueryParam anno if needed 
+                	String location = (String)param.get("location");
+                	if(location != null && location.equals("query")) {
+                		sb.append("@QueryParam(\"");
+                		sb.append(paramName);
+                		sb.append("\") ");
+                	}
                 	
                 	sb.append(convertPropertyToType(param));
                 	sb.append(" ");
