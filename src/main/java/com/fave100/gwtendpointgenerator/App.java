@@ -25,6 +25,8 @@ public class App
 	private static String folderPath = "C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\src\\com\\fave100\\client\\generated\\";
 	private static String servicePath = "";
 	private static String entitiesPath = "";
+	private static String apiName = "";
+	private static String version = "";
 	
     public static void main( String[] args ) throws IOException
     {
@@ -43,8 +45,8 @@ public class App
         Object obj = JSONValue.parse(inputLine);
         JSONObject json = (JSONObject)obj;
         
-        String apiName = (String)json.get("name");
-        String version = (String)json.get("version");
+        apiName = (String)json.get("name");
+        version = (String)json.get("version");
         
         servicePath = folderPath + "\\services\\";
         entitiesPath = folderPath + "\\entities\\";
@@ -210,7 +212,9 @@ public class App
 	    	
 	    	// Path anno
         	sb.append("\n@Path(\"/");
-        	sb.append(resourceName);
+        	sb.append(apiName);        	
+        	sb.append("/");
+        	sb.append(version);        	
         	sb.append("/");
         	sb.append("\")");
         	
