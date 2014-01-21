@@ -8,6 +8,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -174,12 +176,20 @@ public class App
         	
         	sb.append("\n\nimport javax.ws.rs.Path;\n");
         
+        	// Import proper jackson annotations
+        	Set<String> importedHttpMethods = new HashSet<>();
         	for(Object methodObj : methods.keySet()) {
             	String methodName = (String)methodObj;
             	JSONObject method = (JSONObject)methods.get(methodName);
-            	sb.append("import javax.ws.rs.");
-            	sb.append(method.get("httpMethod"));
-            	sb.append(";\n");
+            	
+            	String httpMethod = (String)method.get("httpMethod");
+            	if (!importedHttpMethods.contains(httpMethod)) {
+            		sb.append("import javax.ws.rs.");
+                	sb.append(httpMethod);
+                	sb.append(";\n");
+                	importedHttpMethods.add(httpMethod);
+				}
+            	
         	}
         	
 	    	sb.append("import com.gwtplatform.dispatch.shared.Action;\n");
@@ -196,22 +206,23 @@ public class App
     	    	sb.append(responseType);
     	    	sb.append(";\n");
 	    	}
+	    	
+	    	// Path anno
+        	sb.append("\n@Path(\"/");
+        	sb.append(resourceName);
+        	sb.append("/");
+        	sb.append("\")");
+        	
+        	// Interface
+        	sb.append("\npublic interface ");
+        	sb.append(serviceName);
+        	sb.append(" extends RestService {\n\n");
         	
         	for(Object methodObj : methods.keySet()) {
             	String methodName = (String)methodObj;
             	JSONObject method = (JSONObject)methods.get(methodName);
-            	String responseType = getClassName((String)((JSONObject)method.get("response")).get("$ref"));
+            	String responseType = getClassName((String)((JSONObject)method.get("response")).get("$ref"));            	
             	
-            	// Path anno
-            	sb.append("\n@Path(\"/");
-            	sb.append(resourceName);
-            	sb.append("/");
-            	sb.append("\")");
-            	
-            	// Interface
-            	sb.append("\npublic interface ");
-            	sb.append(serviceName);
-            	sb.append(" extends RestService {\n\n");
             	indent();
             	sb.append("@");
             	sb.append(method.get("httpMethod"));
@@ -225,7 +236,9 @@ public class App
             	sb.append("(");
 
             	JSONObject params = ((JSONObject)method.get("parameters"));
-            	boolean firstParam = true;
+            	
+            	int i = 1;
+            	int length = params.size();
             	for(Object paramObj : params.keySet()) {
                 	String paramName = (String)paramObj;
                 	JSONObject param = (JSONObject)params.get(paramName);
@@ -234,10 +247,10 @@ public class App
                 	sb.append(" ");
                 	sb.append(paramName);
                 	
-                	if(!firstParam)
+                	if(length > 1 && i != length)
                 		sb.append(", ");
                 	
-                	firstParam = false;
+                	i++;
             	}
             	
             	sb.append(");\n");
