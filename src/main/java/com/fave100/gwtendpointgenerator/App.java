@@ -3,6 +3,7 @@ package com.fave100.gwtendpointgenerator;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -29,12 +30,11 @@ public class App
 	private static String version = "";
 	
     public static void main( String[] args ) throws IOException
-    {
-    	URL apiUrl = new URL("http://127.0.0.1:8888/_ah/api/discovery/v1/apis/fave100/v1/rest");
-        BufferedReader in = new BufferedReader(new InputStreamReader(apiUrl.openStream()));
-        
+    {   
         // Delete old generated files
         deleteFiles(new File(folderPath));
+        
+        BufferedReader in = new BufferedReader(new FileReader(new File("C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\WEB-INF\\fave100-v1-rest.discovery")));
 
         String inputLine = "";
         String temp = null;
