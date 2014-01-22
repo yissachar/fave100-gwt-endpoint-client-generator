@@ -34,7 +34,32 @@ public class App
         // Delete old generated files
         deleteFiles(new File(folderPath));
         
-        BufferedReader in = new BufferedReader(new FileReader(new File("C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\WEB-INF\\fave100-v1-rest.discovery")));
+        // TODO: Remove all the harcoding paths
+        // Run AppEngine Endpoints tool to get the latest discovery doc
+        String discoveryDocFolder = "C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\WEB-INF";
+        String endpointsToolPath = "C:/Users/yissachar.radcliffe/dev/lib/java/appengine-java-sdk-1.8.9/bin/endpoints.cmd"
+        		+ " get-discovery-doc"
+        		+ " --output=\""+discoveryDocFolder+"\""
+        		+ " --war=C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\"
+            	+ " com.fave100.server.domain.favelist.FaveListApi"
+        		+ " com.fave100.server.domain.SongApi"
+            	+ " com.fave100.server.domain.appuser.AppUserApi";
+        
+        try {
+            Process p = Runtime.getRuntime().exec(endpointsToolPath);
+
+            BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+
+            String line;
+            while ((line = input.readLine()) != null)
+        	   System.out.println(line);
+
+            input.close();
+        } catch (IOException e) {
+        	e.printStackTrace();
+        }
+        
+        BufferedReader in = new BufferedReader(new FileReader(new File(discoveryDocFolder + "\\fave100-v1-rest.discovery")));
 
         String inputLine = "";
         String temp = null;
