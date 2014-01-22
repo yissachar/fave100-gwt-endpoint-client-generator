@@ -110,10 +110,11 @@ public class App
     		JSONObject propJson = (JSONObject)properties.get(propName);
     		
     		// Getter
+    		String returnType = convertPropertyToType(propJson);
     		indent();
         	sb.append("public ");
-        	sb.append(convertPropertyToType(propJson));
-        	sb.append(" get");
+        	sb.append(returnType);
+        	sb.append(returnType.equals("boolean") ? " is" : " get");
         	sb.append(ucFirst(propName));
         	sb.append("() {\n");
         		indent();
@@ -242,28 +243,30 @@ public class App
 
             	JSONObject params = ((JSONObject)method.get("parameters"));
             	
-            	int i = 1;
-            	int length = params.size();
-            	for(Object paramObj : params.keySet()) {
-                	String paramName = (String)paramObj;                	
-                	JSONObject param = (JSONObject)params.get(paramName);
-                	                	
-                	// Add @QueryParam anno if needed 
-                	String location = (String)param.get("location");
-                	if(location != null && location.equals("query")) {
-                		sb.append("@QueryParam(\"");
-                		sb.append(paramName);
-                		sb.append("\") ");
-                	}
-                	
-                	sb.append(convertPropertyToType(param));
-                	sb.append(" ");
-                	sb.append(paramName);
-                	
-                	if(length > 1 && i != length)
-                		sb.append(", ");
-                	
-                	i++;
+            	if(params != null) {
+	            	int i = 1;
+	            	int length = params.size();
+	            	for(Object paramObj : params.keySet()) {
+	                	String paramName = (String)paramObj;                	
+	                	JSONObject param = (JSONObject)params.get(paramName);
+	                	                	
+	                	// Add @QueryParam anno if needed 
+	                	String location = (String)param.get("location");
+	                	if(location != null && location.equals("query")) {
+	                		sb.append("@QueryParam(\"");
+	                		sb.append(paramName);
+	                		sb.append("\") ");
+	                	}
+	                	
+	                	sb.append(convertPropertyToType(param));
+	                	sb.append(" ");
+	                	sb.append(paramName);
+	                	
+	                	if(length > 1 && i != length)
+	                		sb.append(", ");
+	                	
+	                	i++;
+	            	}
             	}
             	
             	sb.append(");\n");
@@ -310,7 +313,15 @@ public class App
     	JSONObject itemObj = (JSONObject)property.get("items");
     	if(itemObj != null) {
     		String itemType = (String)itemObj.get("$ref");
-    		type += "<" + getClassName(itemType) + ">";
+    		
+    		if(itemType == null) {
+    			// Raw type, don't try to turn it into DTO
+    			itemType = (String)itemObj.get("type");    			
+    			type += "<" + convertType(itemType) + ">";
+    		} else {
+    			// DTO ref
+    			type += "<" + getClassName(convertType(itemType)) + ">";
+    		}
     	}
     	
     	return type;
@@ -323,6 +334,9 @@ public class App
 		
 		case "array":
 			return "List";
+		
+		case "integer":
+			return "int";
 
 		default:
 			return type;
