@@ -55,7 +55,7 @@ public class App
         	   System.out.println(line);
 
             input.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
         	e.printStackTrace();
         }
         
@@ -114,62 +114,64 @@ public class App
     	
     	JSONObject properties = (JSONObject)schema.get("properties");
     	
-    	// Print property fields
-    	for(Object propObj : properties.keySet()) {
-    		String propName = (String)propObj;
-    		JSONObject propJson = (JSONObject)properties.get(propName);
-    		indent();
-        	sb.append("private ");
-        	sb.append(convertPropertyToType(propJson));
-        	sb.append(" ");
-        	sb.append(propName);
-        	sb.append(";\n");
-        	outdent();
-    	}
+    	if(properties != null) {
+	    	// Print property fields
+	    	for(Object propObj : properties.keySet()) {
+	    		String propName = (String)propObj;
+	    		JSONObject propJson = (JSONObject)properties.get(propName);
+	    		indent();
+	        	sb.append("private ");
+	        	sb.append(convertPropertyToType(propJson));
+	        	sb.append(" ");
+	        	sb.append(propName);
+	        	sb.append(";\n");
+	        	outdent();
+	    	}
+	    	
+	    	sb.append("\n");
     	
-    	sb.append("\n");
-    	
-    	// Print getters and setters
-    	for(Object propObj : properties.keySet()) {
-    		String propName = (String)propObj;
-    		JSONObject propJson = (JSONObject)properties.get(propName);
-    		
-    		// Getter
-    		String returnType = convertPropertyToType(propJson);
-    		indent();
-        	sb.append("public ");
-        	sb.append(returnType);
-        	sb.append(returnType.equals("boolean") ? " is" : " get");
-        	sb.append(ucFirst(propName));
-        	sb.append("() {\n");
-        		indent();
-        		sb.append("return this.");
-        		sb.append(propName);
-            	sb.append(";\n");
-            	sb.append("    }\n\n");
-            	outdent();
-        	outdent();
-        	        	
-        	// Setter
-        	indent();
-        	sb.append("public ");
-        	sb.append("void");
-        	sb.append(" set");
-        	sb.append(ucFirst(propName));
-        	sb.append("(");
-        	sb.append(convertPropertyToType(propJson));
-        	sb.append(" ");
-        	sb.append(propName);
-        	sb.append(") {\n");
-        		indent();
-        		sb.append("this.");
-        		sb.append(propName);
-        		sb.append(" = ");
-        		sb.append(propName);
-            	sb.append(";\n");
-            	sb.append("    }\n\n");
-            	outdent();
-        	outdent();
+	    	// Print getters and setters
+	    	for(Object propObj : properties.keySet()) {
+	    		String propName = (String)propObj;
+	    		JSONObject propJson = (JSONObject)properties.get(propName);
+	    		
+	    		// Getter
+	    		String returnType = convertPropertyToType(propJson);
+	    		indent();
+	        	sb.append("public ");
+	        	sb.append(returnType);
+	        	sb.append(returnType.equals("boolean") && !propName.equals("value") ? " is" : " get");
+	        	sb.append(ucFirst(propName));
+	        	sb.append("() {\n");
+	        		indent();
+	        		sb.append("return this.");
+	        		sb.append(propName);
+	            	sb.append(";\n");
+	            	sb.append("    }\n\n");
+	            	outdent();
+	        	outdent();
+	        	        	
+	        	// Setter
+	        	indent();
+	        	sb.append("public ");
+	        	sb.append("void");
+	        	sb.append(" set");
+	        	sb.append(ucFirst(propName));
+	        	sb.append("(");
+	        	sb.append(convertPropertyToType(propJson));
+	        	sb.append(" ");
+	        	sb.append(propName);
+	        	sb.append(") {\n");
+	        		indent();
+	        		sb.append("this.");
+	        		sb.append(propName);
+	        		sb.append(" = ");
+	        		sb.append(propName);
+	            	sb.append(";\n");
+	            	sb.append("    }\n\n");
+	            	outdent();
+	        	outdent();
+	    	}	    	
     	}
     	
     	sb.append("\n}");
@@ -228,12 +230,16 @@ public class App
 	    	for(Object methodObj : methods.keySet()) {
             	String methodName = (String)methodObj;
             	JSONObject method = (JSONObject)methods.get(methodName);
-            	String responseType = getClassName((String)((JSONObject)method.get("response")).get("$ref"));
-    	    	sb.append("import ");
-    	    	sb.append(ENTITY_PACKAGE);
-    	    	sb.append(".");
-    	    	sb.append(responseType);
-    	    	sb.append(";\n");
+            	JSONObject response = (JSONObject)method.get("response");
+            	
+            	if(response != null) {
+	            	String responseType = getClassName((String)(response.get("$ref")));
+	    	    	sb.append("import ");
+	    	    	sb.append(ENTITY_PACKAGE);
+	    	    	sb.append(".");
+	    	    	sb.append(responseType);
+	    	    	sb.append(";\n");
+            	}
 	    	}
 	    	
 	    	// Path anno
