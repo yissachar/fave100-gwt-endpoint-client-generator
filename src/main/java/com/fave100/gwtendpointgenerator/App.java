@@ -43,7 +43,8 @@ public class App
         		+ " --war=C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\"
             	+ " com.fave100.server.domain.favelist.FaveListApi"
         		+ " com.fave100.server.domain.SongApi"
-            	+ " com.fave100.server.domain.appuser.AppUserApi";
+            	+ " com.fave100.server.domain.appuser.AppUserApi"
+            	+ " com.fave100.server.domain.WhylineApi";
         
         try {
             Process p = Runtime.getRuntime().exec(endpointsToolPath);
