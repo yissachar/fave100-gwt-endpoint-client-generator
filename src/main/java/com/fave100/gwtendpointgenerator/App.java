@@ -9,7 +9,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.json.simple.JSONObject;
@@ -37,17 +39,21 @@ public class App
         // TODO: Remove all the harcoding paths
         // Run AppEngine Endpoints tool to get the latest discovery doc
         String discoveryDocFolder = "C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\WEB-INF";
-        String endpointsToolPath = "C:/Users/yissachar.radcliffe/dev/lib/java/appengine-java-sdk-1.8.9/bin/endpoints.cmd"
-        		+ " get-discovery-doc"
-        		+ " --output=\""+discoveryDocFolder+"\""
-        		+ " --war=C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\"
-            	+ " com.fave100.server.domain.favelist.FaveListApi"
-        		+ " com.fave100.server.domain.SongApi"
-            	+ " com.fave100.server.domain.appuser.AppUserApi"
-            	+ " com.fave100.server.domain.WhylineApi";
+        
+        List<String> endpointsToolArgs = new ArrayList<>();
+        endpointsToolArgs.add("C:/Users/yissachar.radcliffe/dev/lib/java/appengine-java-sdk-1.8.9/bin/endpoints.cmd");
+        endpointsToolArgs.add("get-discovery-doc");
+        endpointsToolArgs.add("--output=\""+discoveryDocFolder+"\"");
+        endpointsToolArgs.add("--war=C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\");
+        endpointsToolArgs.add("com.fave100.server.domain.favelist.FaveListApi");
+        endpointsToolArgs.add("com.fave100.server.domain.SongApi");
+        endpointsToolArgs.add("com.fave100.server.domain.appuser.AppUserApi");
+        endpointsToolArgs.add("com.fave100.server.domain.WhylineApi");
         
         try {
-            Process p = Runtime.getRuntime().exec(endpointsToolPath);
+        	ProcessBuilder pb = new ProcessBuilder(endpointsToolArgs);
+        	pb.redirectErrorStream(true);        	
+            Process p = pb.start();
 
             BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
 
@@ -107,11 +113,10 @@ public class App
     	sb.append("package ");
     	sb.append(ENTITY_PACKAGE);
     	sb.append(";");
-    	sb.append("\n\nimport com.gwtplatform.dispatch.shared.Result;");
     	sb.append("\n\nimport java.util.List;");    	
     	sb.append("\n\npublic class ");
     	sb.append(className);
-    	sb.append(" implements Result {\n\n");
+    	sb.append(" {\n\n");
     	
     	JSONObject properties = (JSONObject)schema.get("properties");
     	
@@ -224,8 +229,8 @@ public class App
         	}
 
 	    	sb.append("import javax.ws.rs.QueryParam;\n");
-	    	sb.append("import com.gwtplatform.dispatch.shared.Action;\n");
-	    	sb.append("import com.gwtplatform.dispatch.shared.rest.RestService;\n");
+	    	sb.append("import com.gwtplatform.dispatch.rest.shared.RestAction;\n");
+	    	sb.append("import com.gwtplatform.dispatch.rest.shared.RestService;\n");
 	    	
 	    	// Import all needed entities;
 	    	for(Object methodObj : methods.keySet()) {
@@ -267,13 +272,14 @@ public class App
             	
             	sb.append("\n@Path(\"");
             	sb.append(method.get("path"));
-            	sb.append("\")\npublic Action<");
+            	sb.append("\")\npublic RestAction<");
             	sb.append(responseType);
             	sb.append("> ");
             	sb.append(methodName);
             	sb.append("(");
 
-            	JSONObject params = ((JSONObject)method.get("parameters"));
+            	// Add Query params
+            	JSONObject params = (JSONObject)method.get("parameters");
             	
             	if(params != null) {
 	            	int i = 1;
@@ -299,6 +305,14 @@ public class App
 	                	
 	                	i++;
 	            	}
+            	}
+            	
+            	// Add Request Params
+            	JSONObject request = (JSONObject)method.get("request");
+            	if(request != null) {
+            		sb.append(getClassName((String)request.get("$ref")));
+            		sb.append(" ");
+            		sb.append(request.get("parameterName"));
             	}
             	
             	sb.append(");\n");
