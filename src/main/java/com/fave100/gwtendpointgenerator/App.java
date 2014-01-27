@@ -127,7 +127,11 @@ public class App
 	    		JSONObject propJson = (JSONObject)properties.get(propName);
 	    		indent();
 	        	sb.append("private ");
-	        	sb.append(convertPropertyToType(propJson));
+	        	if(propJson.get("type") != null) {
+	        		sb.append(convertPropertyToType(propJson));
+	        	} else {
+	        		sb.append(getClassName((String)(propJson.get("$ref"))));
+	        	}
 	        	sb.append(" ");
 	        	sb.append(propName);
 	        	sb.append(";\n");
@@ -142,7 +146,12 @@ public class App
 	    		JSONObject propJson = (JSONObject)properties.get(propName);
 	    		
 	    		// Getter
-	    		String returnType = convertPropertyToType(propJson);
+	    		String returnType = "";
+	    		if(propJson.get("type") != null) {
+	    			returnType = convertPropertyToType(propJson);
+	        	} else {
+	        		returnType = getClassName((String)(propJson.get("$ref")));
+	        	}
 	    		indent();
 	        	sb.append("public ");
 	        	sb.append(returnType);
@@ -164,7 +173,11 @@ public class App
 	        	sb.append(" set");
 	        	sb.append(ucFirst(propName));
 	        	sb.append("(");
-	        	sb.append(convertPropertyToType(propJson));
+	        	if(propJson.get("type") != null) {
+	        		sb.append(convertPropertyToType(propJson));
+	        	} else {
+	        		sb.append(getClassName((String)(propJson.get("$ref"))));
+	        	}
 	        	sb.append(" ");
 	        	sb.append(propName);
 	        	sb.append(") {\n");
