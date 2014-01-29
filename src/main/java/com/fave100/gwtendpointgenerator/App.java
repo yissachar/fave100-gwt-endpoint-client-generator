@@ -277,7 +277,14 @@ public class App
         	for(Object methodObj : methods.keySet()) {
             	String methodName = (String)methodObj;
             	JSONObject method = (JSONObject)methods.get(methodName);
-            	String responseType = getClassName((String)((JSONObject)method.get("response")).get("$ref"));            	
+            	JSONObject responseObj = (JSONObject)method.get("response");
+            	
+            	String responseType;
+            	if(responseObj != null) {
+                	responseType = getClassName((String)responseObj.get("$ref"));	
+            	} else {
+            		responseType = "Void";
+            	}
             	
             	indent();
             	sb.append("@");
