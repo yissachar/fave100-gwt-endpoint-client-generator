@@ -24,7 +24,6 @@ public class App
 	private static String SERVICE_PACKAGE = "com.fave100.client.generated.services";
 	
 	private static int indentCount = 0;
-	private static StringBuilder sb = new StringBuilder();
 	private static String folderPath = "C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\src\\com\\fave100\\client\\generated\\";
 	private static String servicePath = "";
 	private static String entitiesPath = "";
@@ -91,7 +90,7 @@ public class App
         for(Object schemaObj : schemas.keySet()) {
         	String schemaName = (String)schemaObj;
         	JSONObject schema = (JSONObject)schemas.get(schemaName);
-        	writeClass(schema);        	
+        	writeEntity(schema);        	
         }
         
         writeServices((JSONObject)json.get("resources"));        	
@@ -108,18 +107,21 @@ public class App
 	    }
     }
         
-    public static void writeClass(JSONObject schema) {
+    public static void writeEntity(JSONObject schema) throws FileNotFoundException, UnsupportedEncodingException {
+    	
+    	FileBuilder fb = new FileBuilder();
+    	
     	String className = getClassName((String)schema.get("id"));
     			
-    	sb.append(getWarningComment());
+    	fb.append(getWarningComment());
     	
-    	sb.append("package ");
-    	sb.append(ENTITY_PACKAGE);
-    	sb.append(";");
-    	sb.append("\n\nimport java.util.List;");    	
-    	sb.append("\n\npublic class ");
-    	sb.append(className);
-    	sb.append(" {\n\n");
+    	fb.append("package ");
+    	fb.append(ENTITY_PACKAGE);
+    	fb.append(";");
+    	fb.append("\n\nimport java.util.List;");    	
+    	fb.append("\n\npublic class ");
+    	fb.append(className);
+    	fb.append(" {\n\n");
     	
     	JSONObject properties = (JSONObject)schema.get("properties");
     	
@@ -128,20 +130,20 @@ public class App
 	    	for(Object propObj : properties.keySet()) {
 	    		String propName = (String)propObj;
 	    		JSONObject propJson = (JSONObject)properties.get(propName);
-	    		indent();
-	        	sb.append("private ");
+	    		fb.indent();
+	        	fb.append("private ");
 	        	if(propJson.get("type") != null) {
-	        		sb.append(convertPropertyToType(propJson));
+	        		fb.append(convertPropertyToType(propJson));
 	        	} else {
-	        		sb.append(getClassName((String)(propJson.get("$ref"))));
+	        		fb.append(getClassName((String)(propJson.get("$ref"))));
 	        	}
-	        	sb.append(" ");
-	        	sb.append(propName);
-	        	sb.append(";\n");
-	        	outdent();
+	        	fb.append(" ");
+	        	fb.append(propName);
+	        	fb.append(";\n");
+	        	fb.outdent();
 	    	}
 	    	
-	    	sb.append("\n");
+	    	fb.append("\n");
     	
 	    	// Print getters and setters
 	    	for(Object propObj : properties.keySet()) {
@@ -155,65 +157,57 @@ public class App
 	        	} else {
 	        		returnType = getClassName((String)(propJson.get("$ref")));
 	        	}
-	    		indent();
-	        	sb.append("public ");
-	        	sb.append(returnType);
-	        	sb.append(returnType.equals("boolean") && !propName.equals("value") ? " is" : " get");
-	        	sb.append(ucFirst(propName));
-	        	sb.append("() {\n");
-	        		indent();
-	        		sb.append("return this.");
-	        		sb.append(propName);
-	            	sb.append(";\n");
-	            	sb.append("    }\n\n");
-	            	outdent();
-	        	outdent();
+	    		fb.indent();
+	        	fb.append("public ");
+	        	fb.append(returnType);
+	        	fb.append(returnType.equals("boolean") && !propName.equals("value") ? " is" : " get");
+	        	fb.append(ucFirst(propName));
+	        	fb.append("() {\n");
+	        		fb.indent();
+	        		fb.append("return this.");
+	        		fb.append(propName);
+	            	fb.append(";\n");
+	            	fb.append("    }\n\n");
+	            	fb.outdent();
+	            fb.outdent();
 	        	        	
 	        	// Setter
-	        	indent();
-	        	sb.append("public ");
-	        	sb.append("void");
-	        	sb.append(" set");
-	        	sb.append(ucFirst(propName));
-	        	sb.append("(");
+	            fb.indent();
+	        	fb.append("public ");
+	        	fb.append("void");
+	        	fb.append(" set");
+	        	fb.append(ucFirst(propName));
+	        	fb.append("(");
 	        	if(propJson.get("type") != null) {
-	        		sb.append(convertPropertyToType(propJson));
+	        		fb.append(convertPropertyToType(propJson));
 	        	} else {
-	        		sb.append(getClassName((String)(propJson.get("$ref"))));
+	        		fb.append(getClassName((String)(propJson.get("$ref"))));
 	        	}
-	        	sb.append(" ");
-	        	sb.append(propName);
-	        	sb.append(") {\n");
-	        		indent();
-	        		sb.append("this.");
-	        		sb.append(propName);
-	        		sb.append(" = ");
-	        		sb.append(propName);
-	            	sb.append(";\n");
-	            	sb.append("    }\n\n");
-	            	outdent();
-	        	outdent();
+	        	fb.append(" ");
+	        	fb.append(propName);
+	        	fb.append(") {\n");
+	        		fb.indent();
+	        		fb.append("this.");
+	        		fb.append(propName);
+	        		fb.append(" = ");
+	        		fb.append(propName);
+	            	fb.append(";\n");
+	            	fb.append("    }\n\n");
+	            	fb.outdent();
+	            fb.outdent();
 	    	}	    	
     	}
     	
-    	sb.append("\n}");
+    	fb.append("}");
     	
-    	PrintWriter writer;
-		try {
-			writer = new PrintWriter(new File(entitiesPath + className + ".java"), "UTF-8");
-	    	writer.print(sb.toString());
-	    	writer.close();
-		} catch (FileNotFoundException | UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		sb = new StringBuilder();
+    	fb.save(entitiesPath + className + ".java");
     }
     
-    public static void writeServices(JSONObject resources) {
+    public static void writeServices(JSONObject resources) throws FileNotFoundException, UnsupportedEncodingException {
     	
     	for(Object resourceObj : resources.keySet()) {
+    		FileBuilder fb = new FileBuilder();
+    		
         	String resourceName = (String)resourceObj;
         	String serviceName = ucFirst(resourceName) + "Service";
         	services.add(serviceName);
@@ -221,13 +215,13 @@ public class App
 	    	
         	JSONObject methods = ((JSONObject)resource.get("methods"));
         	
-        	sb.append(getWarningComment());
+        	fb.append(getWarningComment());
         	
-        	sb.append("package ");
-        	sb.append(SERVICE_PACKAGE);
-        	sb.append(";");
+        	fb.append("package ");
+        	fb.append(SERVICE_PACKAGE);
+        	fb.append(";");
         	
-        	sb.append("\n\nimport javax.ws.rs.Path;\n");
+        	fb.append("\n\nimport javax.ws.rs.Path;\n");
         
         	// Import proper jackson annotations
         	Set<String> importedHttpMethods = new HashSet<>();
@@ -237,17 +231,17 @@ public class App
             	
             	String httpMethod = (String)method.get("httpMethod");
             	if (!importedHttpMethods.contains(httpMethod)) {
-            		sb.append("import javax.ws.rs.");
-                	sb.append(httpMethod);
-                	sb.append(";\n");
+            		fb.append("import javax.ws.rs.");
+                	fb.append(httpMethod);
+                	fb.append(";\n");
                 	importedHttpMethods.add(httpMethod);
 				}
             	
         	}
 
-	    	sb.append("import javax.ws.rs.QueryParam;\n");
-	    	sb.append("import com.gwtplatform.dispatch.rest.shared.RestAction;\n");
-	    	sb.append("import com.gwtplatform.dispatch.rest.shared.RestService;\n");
+	    	fb.append("import javax.ws.rs.QueryParam;\n");
+	    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestAction;\n");
+	    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestService;\n");
 	    	
 	    	// Import all needed entities;
 	    	for(Object methodObj : methods.keySet()) {
@@ -257,26 +251,26 @@ public class App
             	
             	if(response != null) {
 	            	String responseType = getClassName((String)(response.get("$ref")));
-	    	    	sb.append("import ");
-	    	    	sb.append(ENTITY_PACKAGE);
-	    	    	sb.append(".");
-	    	    	sb.append(responseType);
-	    	    	sb.append(";\n");
+	    	    	fb.append("import ");
+	    	    	fb.append(ENTITY_PACKAGE);
+	    	    	fb.append(".");
+	    	    	fb.append(responseType);
+	    	    	fb.append(";\n");
             	}
 	    	}
 	    	
 	    	// Path anno
-        	sb.append("\n@Path(\"/");
-        	sb.append(apiName);        	
-        	sb.append("/");
-        	sb.append(version);        	
-        	sb.append("/");
-        	sb.append("\")");
+        	fb.append("\n@Path(\"/");
+        	fb.append(apiName);        	
+        	fb.append("/");
+        	fb.append(version);        	
+        	fb.append("/");
+        	fb.append("\")");
         	
         	// Interface
-        	sb.append("\npublic interface ");
-        	sb.append(serviceName);
-        	sb.append(" extends RestService {\n\n");
+        	fb.append("\npublic interface ");
+        	fb.append(serviceName);
+        	fb.append(" extends RestService {\n\n");
         	
         	for(Object methodObj : methods.keySet()) {
             	String methodName = (String)methodObj;
@@ -290,17 +284,21 @@ public class App
             		responseType = "Void";
             	}
             	
-            	indent();
-            	sb.append("@");
-            	sb.append(method.get("httpMethod"));
+            	fb.indent();
+            	fb.append("@");
+            	fb.append(method.get("httpMethod"));
             	
-            	sb.append("\n@Path(\"");
-            	sb.append(method.get("path"));
-            	sb.append("\")\npublic RestAction<");
-            	sb.append(responseType);
-            	sb.append("> ");
-            	sb.append(methodName);
-            	sb.append("(");
+            	fb.append("\n");
+            	fb.applyIndent();
+            	fb.append("@Path(\"");
+            	fb.append(method.get("path"));
+            	fb.append("\")\n");
+            	fb.applyIndent();
+            	fb.append("public RestAction<");
+            	fb.append(responseType);
+            	fb.append("> ");
+            	fb.append(methodName);
+            	fb.append("(");
 
             	// Add Query params
             	JSONObject params = (JSONObject)method.get("parameters");
@@ -315,17 +313,17 @@ public class App
 	                	// Add @QueryParam anno if needed 
 	                	String location = (String)param.get("location");
 	                	if(location != null && location.equals("query")) {
-	                		sb.append("@QueryParam(\"");
-	                		sb.append(paramName);
-	                		sb.append("\") ");
+	                		fb.append("@QueryParam(\"");
+	                		fb.append(paramName);
+	                		fb.append("\") ");
 	                	}
 	                	
-	                	sb.append(convertPropertyToType(param));
-	                	sb.append(" ");
-	                	sb.append(paramName);
+	                	fb.append(convertPropertyToType(param));
+	                	fb.append(" ");
+	                	fb.append(paramName);
 	                	
 	                	if(length > 1 && i != length)
-	                		sb.append(", ");
+	                		fb.append(", ");
 	                	
 	                	i++;
 	            	}
@@ -334,99 +332,95 @@ public class App
             	// Add Request Params
             	JSONObject request = (JSONObject)method.get("request");
             	if(request != null) {
-            		sb.append(getClassName((String)request.get("$ref")));
-            		sb.append(" ");
-            		sb.append(request.get("parameterName"));
+            		fb.append(getClassName((String)request.get("$ref")));
+            		fb.append(" ");
+            		fb.append(request.get("parameterName"));
             	}
             	
-            	sb.append(");\n");
+            	fb.append(");\n\n");
+            	fb.outdent();
             	
         	}
         	
-        	sb.append("}");
+        	fb.append("}");
 	    	
-	    	PrintWriter writer;
-			try {
-				writer = new PrintWriter(new File(servicePath + serviceName + ".java"), "UTF-8");
-		    	writer.print(sb.toString());
-		    	writer.close();
-			} catch (FileNotFoundException | UnsupportedEncodingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			sb = new StringBuilder();
+        	fb.save(servicePath + serviceName + ".java");
     	}
     }
     
-    public static void writeServiceFactory() {
-    	sb.append("package com.fave100.client.generated.services;\n\n");
-    	sb.append("import com.google.inject.Inject;\n\n");
-    	sb.append("public class RestServiceFactory {\n\n");
+    public static void writeServiceFactory() throws FileNotFoundException, UnsupportedEncodingException {
+    	FileBuilder fb = new FileBuilder();
+    	
+    	fb.append("package com.fave100.client.generated.services;\n\n");
+    	fb.append("import com.google.inject.Inject;\n\n");
+    	fb.append("public class RestServiceFactory {\n\n");
     	
     	// Variable declarations
+    	fb.indent();
     	for(String service : services) {
-    		sb.append("private ");
-    		sb.append(service);
-    		sb.append(" _");
-    		sb.append(lcFirst(service));
-    		sb.append(";\n");
+    		fb.append("private ");
+    		fb.append(service);
+    		fb.append(" _");
+    		fb.append(lcFirst(service));
+    		fb.append(";\n");
+    		fb.applyIndent();
     	}
     	
-    	sb.append("\n@Inject\n");
-    	sb.append("public RestServiceFactory(");
+    	fb.append("\n");
+    	fb.applyIndent();
+    	fb.append("@Inject\n");
+    	fb.applyIndent();
+    	fb.append("public RestServiceFactory(");
     	
     	// Constructor params
     	int i = 1;
     	for(String service : services) {
-    		sb.append(service);
-    		sb.append(" ");
-    		sb.append(lcFirst(service));
+    		fb.append(service);
+    		fb.append(" ");
+    		fb.append(lcFirst(service));
     		
     		if(services.size() > 1 && i != services.size())
-    			sb.append(", ");
+    			fb.append(", ");
     		
     		i++;
     	}
     	
-    	sb.append(") {\n");
+    	fb.append(") {\n");
     	
-    	// Field initialization
+    	// Field initialization    	
+    	fb.indent();
     	for(String service : services) {
-    		sb.append(" _");
-    		sb.append(lcFirst(service));
-    		sb.append(" = ");
-    		sb.append(lcFirst(service));
-    		sb.append(";\n");
+    		fb.append(" _");
+    		fb.append(lcFirst(service));
+    		fb.append(" = ");
+    		fb.append(lcFirst(service));
+    		fb.append(";\n");
+    		fb.applyIndent();
     	}
-    	
-    	sb.append("}\n\n");
+    	fb.outdent();
+    	fb.append("}\n\n");
     	
     	// Getters
     	for(String service : services) {
-    		sb.append("public ");
-    		sb.append(service);    		
-    		sb.append(" get");
-    		sb.append(service);
-    		sb.append("() {\n");
-    		sb.append("return _");
-    		sb.append(lcFirst(service));
-    		sb.append(";\n}\n");
+        	fb.applyIndent();
+    		fb.append("public ");
+    		fb.append(service);    		
+    		fb.append(" get");
+    		fb.append(service);
+    		fb.append("() {\n");
+    		fb.indent();
+    		fb.append("return _");
+    		fb.append(lcFirst(service));
+    		fb.append(";\n");
+    		fb.outdent();
+    		fb.applyIndent();
+    		fb.append("}\n\n");
     	}
+
+		fb.outdent();
+    	fb.append("}");
     	
-    	sb.append("\n}");
-    	
-    	PrintWriter writer;
-		try {
-			writer = new PrintWriter(new File(servicePath + "RestServiceFactory.java"), "UTF-8");
-	    	writer.print(sb.toString());
-	    	writer.close();
-		} catch (FileNotFoundException | UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		sb = new StringBuilder();
+    	fb.save(servicePath + "RestServiceFactory.java");
     }
     
     public static String getWarningComment() {
@@ -481,17 +475,6 @@ public class App
 		default:
 			return type;
 		}
-    }
-    
-    public static void indent() {
-    	indentCount++;
-    	for(int i = 0; i < indentCount * 4; i++) {
-    		sb.append(" ");
-    	}
-    }
-    
-    public static void outdent() {
-    	indentCount--;
     }
     
     private static String ucFirst(String string) {
