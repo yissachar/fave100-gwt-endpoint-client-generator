@@ -30,6 +30,7 @@ public class App
 	private static String entitiesPath = "";
 	private static String apiName = "";
 	private static String version = "";
+	private static List<String> services = new ArrayList<>();
 	
     public static void main( String[] args ) throws IOException
     {   
@@ -94,6 +95,8 @@ public class App
         }
         
         writeServices((JSONObject)json.get("resources"));        	
+        
+        writeServiceFactory();
         
     }
     
@@ -213,6 +216,7 @@ public class App
     	for(Object resourceObj : resources.keySet()) {
         	String resourceName = (String)resourceObj;
         	String serviceName = ucFirst(resourceName) + "Service";
+        	services.add(serviceName);
         	JSONObject resource = (JSONObject)resources.get(resourceName);
 	    	
         	JSONObject methods = ((JSONObject)resource.get("methods"));
@@ -355,6 +359,76 @@ public class App
     	}
     }
     
+    public static void writeServiceFactory() {
+    	sb.append("package com.fave100.client.generated.services;\n\n");
+    	sb.append("import com.google.inject.Inject;\n\n");
+    	sb.append("public class RestServiceFactory {\n\n");
+    	
+    	// Variable declarations
+    	for(String service : services) {
+    		sb.append("private ");
+    		sb.append(service);
+    		sb.append(" _");
+    		sb.append(lcFirst(service));
+    		sb.append(";\n");
+    	}
+    	
+    	sb.append("\n@Inject\n");
+    	sb.append("public RestServiceFactory(");
+    	
+    	// Constructor params
+    	int i = 1;
+    	for(String service : services) {
+    		sb.append(service);
+    		sb.append(" ");
+    		sb.append(lcFirst(service));
+    		
+    		if(services.size() > 1 && i != services.size())
+    			sb.append(", ");
+    		
+    		i++;
+    	}
+    	
+    	sb.append(") {\n");
+    	
+    	// Field initialization
+    	for(String service : services) {
+    		sb.append(" _");
+    		sb.append(lcFirst(service));
+    		sb.append(" = ");
+    		sb.append(lcFirst(service));
+    		sb.append(";\n");
+    	}
+    	
+    	sb.append("}\n\n");
+    	
+    	// Getters
+    	for(String service : services) {
+    		sb.append("public ");
+    		sb.append(service);    		
+    		sb.append(" get");
+    		sb.append(service);
+    		sb.append("() {\n");
+    		sb.append("return _");
+    		sb.append(lcFirst(service));
+    		sb.append(";\n}\n");
+    	}
+    	
+    	sb.append("\n}");
+    	
+    	PrintWriter writer;
+		try {
+			writer = new PrintWriter(new File(servicePath + "RestServiceFactory.java"), "UTF-8");
+	    	writer.print(sb.toString());
+	    	writer.close();
+		} catch (FileNotFoundException | UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		sb = new StringBuilder();
+    }
+    
     public static String getWarningComment() {
     	return "/*\n"
     			+ "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
@@ -422,5 +496,9 @@ public class App
     
     private static String ucFirst(String string) {
     	return Character.toString(string.charAt(0)).toUpperCase() + string.substring(1);
+    }
+    
+    private static String lcFirst(String string) {
+    	return Character.toString(string.charAt(0)).toLowerCase() + string.substring(1);
     }
 }
