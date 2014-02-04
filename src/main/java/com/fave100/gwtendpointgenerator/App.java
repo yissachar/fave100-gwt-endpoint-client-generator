@@ -112,6 +112,8 @@ public class App
     	FileBuilder fb = new FileBuilder();
     	
     	String className = getClassName((String)schema.get("id"));
+    	if(className.contains("<"))
+    		return;
     			
     	fb.append(getWarningComment());
     	
@@ -239,6 +241,7 @@ public class App
             	
         	}
 
+        	fb.append("import java.util.List;");    
 	    	fb.append("import javax.ws.rs.QueryParam;\n");
 	    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestAction;\n");
 	    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestService;\n");
@@ -251,11 +254,14 @@ public class App
             	
             	if(response != null) {
 	            	String responseType = getClassName((String)(response.get("$ref")));
+	            	responseType = responseType.replace("List<", "");
+	            	responseType =responseType.replace(">", "");
+	            	
 	    	    	fb.append("import ");
 	    	    	fb.append(ENTITY_PACKAGE);
 	    	    	fb.append(".");
 	    	    	fb.append(responseType);
-	    	    	fb.append(";\n");
+	    	    	fb.append(";\n");	            	
             	}
 	    	}
 	    	
@@ -435,10 +441,15 @@ public class App
     }
     
     public static String getClassName(String type) {
-    	if(!type.endsWith("Collection")) 
-    		type += "Dto";
+    	String className = "";
     	
-    	return type;
+    	if(!type.endsWith("Collection")) { 
+    		className = type + "Dto";
+    	} else {
+    		className = "List<" + type.split("Collection")[0] + "Dto>";
+    	}
+    	
+    	return className;
     }
     
     public static String convertPropertyToType(JSONObject property) {
