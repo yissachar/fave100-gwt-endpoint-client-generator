@@ -216,6 +216,7 @@ public class App
         	}
 
         	fb.append("import java.util.List;");    
+	    	fb.append("import javax.ws.rs.PathParam;\n");
 	    	fb.append("import javax.ws.rs.QueryParam;\n");
 	    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestAction;\n");
 	    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestService;\n");
@@ -260,7 +261,7 @@ public class App
             	fb.applyIndent();
             	fb.append(String.format("public RestAction<%s> %s (", responseType, methodName));
 
-            	// Add Query params
+            	// Add Query or Path params
             	JSONObject params = (JSONObject)method.get("parameters");
             	
             	if(params != null) {
@@ -270,10 +271,14 @@ public class App
 	                	String paramName = (String)paramObj;                	
 	                	JSONObject param = (JSONObject)params.get(paramName);
 	                	                	
-	                	// Add @QueryParam anno if needed 
+	                	// Add @QueryParam or @PathParam anno if needed 
 	                	String location = (String)param.get("location");
-	                	if(location != null && location.equals("query")) {
-	                		fb.append(String.format("@QueryParam(\"%s\") ", paramName));
+	                	if(location != null) {
+	                			if(location.equals("query")) {
+	                				fb.append(String.format("@QueryParam(\"%s\") ", paramName));
+	                			} else if(location.equals("path")) {
+	                				fb.append(String.format("@PathParam(\"%s\") ", paramName));
+	                			} 
 	                	}
 	                	
 	                	fb.append(convertPropertyToType(param));
