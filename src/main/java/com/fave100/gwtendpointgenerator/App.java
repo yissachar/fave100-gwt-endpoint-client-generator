@@ -322,7 +322,7 @@ public class App
     	// Getters
     	for(String service : services) {
         	fb.applyIndent();
-    		fb.append(String.format("public %s get%s() {\n", service, service));
+    		fb.append(String.format("public %s %s() {\n", service, lcFirst(service.replace("Service", ""))));
     		fb.indent();
     		fb.append(String.format("return _%s;\n", lcFirst(service)));
     		fb.outdent();
