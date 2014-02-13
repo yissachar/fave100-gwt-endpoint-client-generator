@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 
@@ -24,8 +25,6 @@ public class App
 	private static String folderPath = "C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\src\\com\\fave100\\client\\generated\\";
 	private static String servicePath = "";
 	private static String entitiesPath = "";
-	private static String apiName = "";
-	private static String version = "";
 	private static List<String> services = new ArrayList<>();
 	
     public static void main( String[] args ) throws IOException
@@ -35,64 +34,32 @@ public class App
         
         // TODO: Remove all the harcoding paths
         // Run AppEngine Endpoints tool to get the latest discovery doc
-        String discoveryDocFolder = "C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\WEB-INF";
-        
-        List<String> endpointsToolArgs = new ArrayList<>();
-        endpointsToolArgs.add("C:/Users/yissachar.radcliffe/dev/lib/java/appengine-java-sdk-1.8.9/bin/endpoints.cmd");
-        endpointsToolArgs.add("get-discovery-doc");
-        endpointsToolArgs.add("--output=\""+discoveryDocFolder+"\"");
-        endpointsToolArgs.add("--war=C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\");
-        endpointsToolArgs.add("com.fave100.server.domain.favelist.FaveListApi");
-        endpointsToolArgs.add("com.fave100.server.domain.SongApi");
-        endpointsToolArgs.add("com.fave100.server.domain.appuser.AppUserApi");
-        endpointsToolArgs.add("com.fave100.server.domain.WhylineApi");
-        
-        try {
-        	ProcessBuilder pb = new ProcessBuilder(endpointsToolArgs);
-        	pb.redirectErrorStream(true);        	
-            Process p = pb.start();
-
-            BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-
-            String line;
-            while ((line = input.readLine()) != null)
-        	   System.out.println(line);
-
-            input.close();
-        } catch (Exception e) {
-        	e.printStackTrace();
-        }
-        
-        BufferedReader in = new BufferedReader(new FileReader(new File(discoveryDocFolder + "\\fave100-v1-rest.discovery")));
-
-        String inputLine = "";
-        String temp = null;
-        while ((temp = in.readLine()) != null)
-            inputLine += temp;
-        in.close();
-        
-        Object obj = JSONValue.parse(inputLine);
-        JSONObject json = (JSONObject)obj;
-        
-        apiName = (String)json.get("name");
-        version = (String)json.get("version");
+        String discoveryDocFolder = "C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\generated\\apidocs";
         
         servicePath = folderPath + "\\services\\";
         entitiesPath = folderPath + "\\entities\\";
-        
+
     	new File(servicePath).mkdirs();
     	new File(entitiesPath).mkdirs();
     	
-        JSONObject schemas = (JSONObject)json.get("schemas");
-        for(Object schemaObj : schemas.keySet()) {
-        	String schemaName = (String)schemaObj;
-        	JSONObject schema = (JSONObject)schemas.get(schemaName);
-        	writeEntity(schema);        	
+        for (File file : new File(discoveryDocFolder).listFiles()) {
+	    	if(file.isFile()) {
+	    		BufferedReader in = new BufferedReader(new FileReader(file));
+
+	            String inputLine = "";
+	            String temp = null;
+	            while ((temp = in.readLine()) != null)
+	                inputLine += temp;
+	            in.close();
+	            
+	            Object obj = JSONValue.parse(inputLine);
+	            JSONObject json = (JSONObject)obj;
+
+	            generateService(json);
+	            generateEntities(json);
+	            generateServiceFactory();
+	    	}
         }
-        
-        writeServices((JSONObject)json.get("resources"));
-        writeServiceFactory();
-        
     }
     
     private static void deleteFiles(File dir) {
@@ -102,24 +69,147 @@ public class App
 	        file.delete();
 	    }
     }
-        
-    private static void writeEntity(JSONObject schema) throws FileNotFoundException, UnsupportedEncodingException {
-    	
+    
+    public static void generateService(JSONObject json) throws FileNotFoundException, UnsupportedEncodingException {
     	FileBuilder fb = new FileBuilder();
-    	
-    	String className = getClassName((String)schema.get("id"));
-    	if(className.contains("<"))
+
+    	JSONArray apis = (JSONArray)json.get("apis");
+        
+    	String resourcePath = (String)json.get("resourcePath");
+    	// Not a service
+    	if(resourcePath == null) 
     		return;
-    			
+    	
+    	String resourceName = resourcePath.replace("/", "");
+    	String serviceName = ucFirst(resourceName) + "Service";
+    	services.add(serviceName);
+    	
     	fb.append(getWarningComment());
     	
-    	fb.append(String.format("package %s;", ENTITY_PACKAGE));
-    	fb.append("\n\nimport java.util.List;");    	
-    	fb.append(String.format("\n\npublic class %s {\n\n", className));
+    	fb.append(String.format("package %s;", SERVICE_PACKAGE));
     	
-    	JSONObject properties = (JSONObject)schema.get("properties");
+    	fb.append("\n\nimport javax.ws.rs.Path;\n");
+    
+    	// Import proper jackson annotations
+    	Set<String> importedHttpMethods = new HashSet<>();
+    	for(Object apiObj : apis) {
+        	JSONObject api = (JSONObject)apiObj;
+        	
+        	for(Object operationObj : (JSONArray)api.get("operations")) {  
+        		JSONObject operation = (JSONObject)operationObj;
+            	String httpMethod = (String)operation.get("method");	
+            	
+            	if (!importedHttpMethods.contains(httpMethod)) {
+            		fb.append(String.format("import javax.ws.rs.%s;\n", httpMethod));
+                	importedHttpMethods.add(httpMethod);
+    			}
+        	}        	
+    	}
+
+    	fb.append("import java.util.List;");    
+    	fb.append("import javax.ws.rs.PathParam;\n");
+    	fb.append("import javax.ws.rs.QueryParam;\n");
+    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestAction;\n");
+    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestService;\n");
     	
-    	if(properties != null) {
+    	// Import all needed entities;
+    	for(Object apiObj : apis) {
+        	JSONObject api = (JSONObject)apiObj;
+        	
+        	for(Object operationObj : (JSONArray)api.get("operations")) {
+        		JSONObject operation = (JSONObject)operationObj;
+            	String response = (String)operation.get("type");
+            	
+            	String responseType = getClassName(response);
+            	if(!responseType.endsWith("Void"))
+            		fb.append(String.format("import %s.%s;\n", ENTITY_PACKAGE, responseType));	      
+        	}
+    	}    	
+    	
+    	// Path anno
+    	fb.append("\n@Path(\"/\")");
+    	
+    	// Interface
+    	fb.append(String.format("\npublic interface %s extends RestService {\n\n", serviceName));
+    	
+    	for(Object apiObj : apis) {
+        	JSONObject api = (JSONObject)apiObj;
+        	
+        	for(Object operationObj : (JSONArray)api.get("operations")) {
+
+        		JSONObject operation = (JSONObject)operationObj;
+            	String response = (String)operation.get("type");
+            	
+            	String responseType = getClassName(response);
+            	
+            	fb.indent();
+            	fb.append(String.format("@%s\n", operation.get("method")));
+            	fb.applyIndent();
+            	fb.append(String.format("@Path(\"%s\")\n", api.get("path")));
+            	fb.applyIndent();
+            	fb.append(String.format("public RestAction<%s> %s (", responseType, operation.get("nickname")));
+            	
+            	// Add Query or Path params
+            	JSONArray params =(JSONArray) operation.get("parameters");
+
+            	int i = 1;
+            	int length = params.size();
+            	for(Object paramObj : params) {               	
+                	JSONObject param = (JSONObject)paramObj;
+                	                	
+                	// Add @QueryParam or @PathParam anno if needed 
+                	String paramType = (String)param.get("paramType");
+                	String paramName = (String)param.get("name");
+                	
+        			if(paramType.equals("query")) {
+        				fb.append(String.format("@QueryParam(\"%s\") ", paramName));
+        			} else if(paramType.equals("path")) {
+        				fb.append(String.format("@PathParam(\"%s\") ", paramName));
+        			} 
+                	
+                	fb.append(getClassName((String)param.get("type")));
+                	fb.append(" ");
+                	fb.append(paramName);
+                	
+                	if(length > 1 && i != length)
+                		fb.append(", ");
+                	
+                	i++;
+            	}
+            	
+            	fb.append(");\n\n");
+            	fb.outdent();
+        		
+        	}
+    	}
+    	
+    	fb.append("}");
+    	
+    	fb.save(servicePath + serviceName + ".java");
+    }
+        
+    private static void generateEntities(JSONObject json) throws FileNotFoundException, UnsupportedEncodingException {
+    	
+    	JSONObject models = (JSONObject)json.get("models");
+    	// No entities
+    	if(models == null)
+    		return;
+    	
+    	for(Object modelObj : models.keySet()) {
+    		FileBuilder fb = new FileBuilder();
+    		
+    		JSONObject model = (JSONObject)models.get((String)modelObj);
+    	
+	    	String className = getClassName((String)model.get("id"));
+	    			
+	    	fb.append(getWarningComment());
+	    	
+	    	fb.append(String.format("package %s;", ENTITY_PACKAGE));
+	    	fb.append("\n\nimport java.util.List;");    	
+	    	fb.append(String.format("\n\npublic class %s {\n\n", className));
+	    	
+	    	JSONObject properties = (JSONObject)model.get("properties");
+	    	
 	    	// Print property fields
 	    	for(Object propObj : properties.keySet()) {
 	    		String propName = (String)propObj;
@@ -176,142 +266,16 @@ public class App
 	            	fb.append("}\n\n");
 	            fb.outdent();
 	    	}	    	
-    	}
+	    	
+	    	fb.append("}");
     	
-    	fb.append("}");
-    	
-    	fb.save(entitiesPath + className + ".java");
-    }
-    
-    private static void writeServices(JSONObject resources) throws FileNotFoundException, UnsupportedEncodingException {
-    	
-    	for(Object resourceObj : resources.keySet()) {
-    		FileBuilder fb = new FileBuilder();
-    		
-        	String resourceName = (String)resourceObj;
-        	String serviceName = ucFirst(resourceName) + "Service";
-        	services.add(serviceName);
-        	JSONObject resource = (JSONObject)resources.get(resourceName);
-	    	
-        	JSONObject methods = ((JSONObject)resource.get("methods"));
-        	
-        	fb.append(getWarningComment());
-        	
-        	fb.append(String.format("package %s;", SERVICE_PACKAGE));
-        	
-        	fb.append("\n\nimport javax.ws.rs.Path;\n");
-        
-        	// Import proper jackson annotations
-        	Set<String> importedHttpMethods = new HashSet<>();
-        	for(Object methodObj : methods.keySet()) {
-            	String methodName = (String)methodObj;
-            	JSONObject method = (JSONObject)methods.get(methodName);
-            	
-            	String httpMethod = (String)method.get("httpMethod");
-            	if (!importedHttpMethods.contains(httpMethod)) {
-            		fb.append(String.format("import javax.ws.rs.%s;\n", httpMethod));
-                	importedHttpMethods.add(httpMethod);
-				}
-            	
-        	}
-
-        	fb.append("import java.util.List;");    
-	    	fb.append("import javax.ws.rs.PathParam;\n");
-	    	fb.append("import javax.ws.rs.QueryParam;\n");
-	    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestAction;\n");
-	    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestService;\n");
-	    	
-	    	// Import all needed entities;
-	    	for(Object methodObj : methods.keySet()) {
-            	String methodName = (String)methodObj;
-            	JSONObject method = (JSONObject)methods.get(methodName);
-            	JSONObject response = (JSONObject)method.get("response");
-            	
-            	if(response != null) {
-	            	String responseType = getClassName((String)(response.get("$ref")));
-	            	responseType = responseType.replace("List<", "");
-	            	responseType =responseType.replace(">", "");
-	            	
-	    	    	fb.append(String.format("import %s.%s;\n", ENTITY_PACKAGE, responseType));	            	
-            	}
-	    	}
-	    	
-	    	// Path anno
-        	fb.append(String.format("\n@Path(\"/%s/%s/\")", apiName, version));
-        	
-        	// Interface
-        	fb.append(String.format("\npublic interface %s extends RestService {\n\n", serviceName));
-        	
-        	for(Object methodObj : methods.keySet()) {
-            	String methodName = (String)methodObj;
-            	JSONObject method = (JSONObject)methods.get(methodName);
-            	JSONObject responseObj = (JSONObject)method.get("response");
-            	
-            	String responseType;
-            	if(responseObj != null) {
-                	responseType = getClassName((String)responseObj.get("$ref"));	
-            	} else {
-            		responseType = "Void";
-            	}
-            	
-            	fb.indent();
-            	fb.append(String.format("@%s\n", method.get("httpMethod")));
-            	fb.applyIndent();
-            	fb.append(String.format("@Path(\"%s\")\n", method.get("path")));
-            	fb.applyIndent();
-            	fb.append(String.format("public RestAction<%s> %s (", responseType, methodName));
-
-            	// Add Query or Path params
-            	JSONObject params = (JSONObject)method.get("parameters");
-            	
-            	if(params != null) {
-	            	int i = 1;
-	            	int length = params.size();
-	            	for(Object paramObj : params.keySet()) {
-	                	String paramName = (String)paramObj;                	
-	                	JSONObject param = (JSONObject)params.get(paramName);
-	                	                	
-	                	// Add @QueryParam or @PathParam anno if needed 
-	                	String location = (String)param.get("location");
-	                	if(location != null) {
-	                			if(location.equals("query")) {
-	                				fb.append(String.format("@QueryParam(\"%s\") ", paramName));
-	                			} else if(location.equals("path")) {
-	                				fb.append(String.format("@PathParam(\"%s\") ", paramName));
-	                			} 
-	                	}
-	                	
-	                	fb.append(convertPropertyToType(param));
-	                	fb.append(" ");
-	                	fb.append(paramName);
-	                	
-	                	if(length > 1 && i != length)
-	                		fb.append(", ");
-	                	
-	                	i++;
-	            	}
-            	}
-            	
-            	// Add Request Params
-            	JSONObject request = (JSONObject)method.get("request");
-            	if(request != null) {
-            		fb.append(getClassName((String)request.get("$ref")));
-            		fb.append(" ");
-            		fb.append(request.get("parameterName"));
-            	}
-            	
-            	fb.append(");\n\n");
-            	fb.outdent();
-            	
-        	}
-        	
-        	fb.append("}");
-	    	
-        	fb.save(servicePath + serviceName + ".java");
+	    	String fileName = entitiesPath + className + ".java";
+	    	if(!new File(fileName).exists())
+	    		fb.save(fileName);
     	}
     }
     
-    private static void writeServiceFactory() throws FileNotFoundException, UnsupportedEncodingException {
+    private static void generateServiceFactory() throws FileNotFoundException, UnsupportedEncodingException {
     	FileBuilder fb = new FileBuilder();
     	
     	fb.append("package com.fave100.client.generated.services;\n\n");
@@ -384,12 +348,10 @@ public class App
     }
     
     private static String getClassName(String type) {
-    	String className = "";
+    	String className = convertType(type);
     	
-    	if(!type.endsWith("Collection")) { 
+    	if(type.equals(className) && !type.endsWith("Collection")) {
     		className = type + "Dto";
-    	} else {
-    		className = "List<" + type.split("Collection")[0] + "Dto>";
     	}
     	
     	return className;
@@ -425,6 +387,9 @@ public class App
 		
 		case "integer":
 			return "int";
+			
+		case "void":
+			return "Void";
 
 		default:
 			return type;
