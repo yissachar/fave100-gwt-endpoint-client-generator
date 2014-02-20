@@ -34,7 +34,7 @@ public class App
         
         // TODO: Remove all the harcoding paths
         // Run AppEngine Endpoints tool to get the latest discovery doc
-        String discoveryDocFolder = "C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\generated\\apidocs";
+        String discoveryDocFolder = "C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\apidocs";
         
         servicePath = folderPath + "\\services\\";
         entitiesPath = folderPath + "\\entities\\";
