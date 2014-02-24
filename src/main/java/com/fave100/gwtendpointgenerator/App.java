@@ -347,14 +347,8 @@ public class App
     			+ "*/\n\n"; 
     }
     
-    private static String getClassName(String type) {
-    	String className = convertType(type);
-    	
-    	if(type.equals(className) && !type.endsWith("Collection")) {
-    		className = type + "Dto";
-    	}
-    	
-    	return className;
+    private static String getClassName(String type) {    	
+    	return convertType(type);
     }
     
     private static String convertPropertyToType(JSONObject property) {
