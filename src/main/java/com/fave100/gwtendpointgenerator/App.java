@@ -117,12 +117,19 @@ public class App
         	JSONObject api = (JSONObject)apiObj;
         	
         	for(Object operationObj : (JSONArray)api.get("operations")) {
-        		JSONObject operation = (JSONObject)operationObj;
-            	String response = (String)operation.get("type");
+        		JSONObject operation = (JSONObject)operationObj;            	
+            	String responseType = getClassName((String)operation.get("type"));
             	
-            	String responseType = getClassName(response);
-            	if(!responseType.endsWith("Void"))
-            		fb.append(String.format("import %s.%s;\n", ENTITY_PACKAGE, responseType));	      
+            	if(!isBasicType(responseType))
+            		fb.append(String.format("import %s.%s;\n", ENTITY_PACKAGE, responseType));
+            	
+            	for(Object paramObj : (JSONArray)operation.get("parameters")) {
+            		JSONObject param = (JSONObject)paramObj;
+                	String paramType = getClassName((String)param.get("type"));
+                	
+                	if(!isBasicType(paramType))
+                		fb.append(String.format("import %s.%s;\n", ENTITY_PACKAGE, paramType));
+            	}
         	}
     	}    	
     	
@@ -387,6 +394,19 @@ public class App
 
 		default:
 			return type;
+		}
+    }
+    
+    private static boolean isBasicType(String type) {
+    	switch (type) {
+			case "String":			
+			case "List":
+			case "int":
+			case "Void":
+				return true;
+	
+			default:
+				return false;
 		}
     }
     
