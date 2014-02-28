@@ -22,7 +22,7 @@ public class App
 	private static String ENTITY_PACKAGE = "com.fave100.client.generated.entities";
 	private static String SERVICE_PACKAGE = "com.fave100.client.generated.services";
 	
-	private static String folderPath = "C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\src\\com\\fave100\\client\\generated\\";
+	private static String folderPath = "F:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\src\\main\\java\\com\\fave100\\client\\generated\\";
 	private static String servicePath = "";
 	private static String entitiesPath = "";
 	private static List<String> services = new ArrayList<>();
@@ -34,7 +34,7 @@ public class App
         
         // TODO: Remove all the harcoding paths
         // Run AppEngine Endpoints tool to get the latest discovery doc
-        String discoveryDocFolder = "C:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\apidocs";
+        String discoveryDocFolder = "F:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\apidocs";
         
         servicePath = folderPath + "\\services\\";
         entitiesPath = folderPath + "\\entities\\";
@@ -174,7 +174,11 @@ public class App
         				fb.append(String.format("@PathParam(\"%s\") ", paramName));
         			} 
                 	
-                	fb.append(getClassName((String)param.get("type")));
+        			if(paramType.equals("body")) {
+        				fb.append(ucFirst((String)param.get("type")));
+        			} else {
+        				fb.append(getClassName((String)param.get("type")));
+        			}
                 	fb.append(" ");
                 	fb.append(paramName);
                 	
