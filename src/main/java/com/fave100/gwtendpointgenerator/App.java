@@ -34,7 +34,7 @@ public class App
         
         // TODO: Remove all the harcoding paths
         // Run AppEngine Endpoints tool to get the latest discovery doc
-        String discoveryDocFolder = "F:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\war\\apidocs";
+        String discoveryDocFolder = "F:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\src\\main\\webapp\\apidocs";
         
         servicePath = folderPath + "\\services\\";
         entitiesPath = folderPath + "\\entities\\";
@@ -43,7 +43,7 @@ public class App
     	new File(entitiesPath).mkdirs();
     	
         for (File file : new File(discoveryDocFolder).listFiles()) {
-	    	if(file.isFile()) {
+	    	if(file.isFile() && file.getName().endsWith(".json")) {
 	    		BufferedReader in = new BufferedReader(new FileReader(file));
 
 	            String inputLine = "";
