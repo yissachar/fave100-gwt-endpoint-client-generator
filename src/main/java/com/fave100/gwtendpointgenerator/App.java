@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -88,10 +87,12 @@ public class App
     	
     	fb.append(String.format("package %s;", SERVICE_PACKAGE));
     	
-    	fb.append("\n\nimport javax.ws.rs.Path;\n");
-    
-    	// Import proper jackson annotations
-    	Set<String> importedHttpMethods = new HashSet<>();
+    	fb.append("\n\n");
+        	
+    	Set<String> imports = new HashSet<>();
+    	imports.add("javax.ws.rs.Path");
+    	
+    	// Add Jackson annotations
     	for(Object apiObj : apis) {
         	JSONObject api = (JSONObject)apiObj;
         	
@@ -99,18 +100,15 @@ public class App
         		JSONObject operation = (JSONObject)operationObj;
             	String httpMethod = (String)operation.get("method");	
             	
-            	if (!importedHttpMethods.contains(httpMethod)) {
-            		fb.append(String.format("import javax.ws.rs.%s;\n", httpMethod));
-                	importedHttpMethods.add(httpMethod);
-    			}
+            	imports.add("javax.ws.rs." + httpMethod);
         	}        	
     	}
 
-    	fb.append("import java.util.List;");    
-    	fb.append("import javax.ws.rs.PathParam;\n");
-    	fb.append("import javax.ws.rs.QueryParam;\n");
-    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestAction;\n");
-    	fb.append("import com.gwtplatform.dispatch.rest.shared.RestService;\n");
+    	// General imports
+    	imports.add("javax.ws.rs.PathParam");
+    	imports.add("javax.ws.rs.QueryParam");
+    	imports.add("com.gwtplatform.dispatch.rest.shared.RestAction");
+    	imports.add("com.gwtplatform.dispatch.rest.shared.RestService");
     	
     	// Import all needed entities;
     	for(Object apiObj : apis) {
@@ -121,17 +119,23 @@ public class App
             	String responseType = getClassName((String)operation.get("type"));
             	
             	if(!isBasicType(responseType))
-            		fb.append(String.format("import %s.%s;\n", ENTITY_PACKAGE, responseType));
+            		imports.add(ENTITY_PACKAGE + "." + responseType);
             	
             	for(Object paramObj : (JSONArray)operation.get("parameters")) {
             		JSONObject param = (JSONObject)paramObj;
                 	String paramType = getClassName((String)param.get("type"));
                 	
                 	if(!isBasicType(paramType))
-                		fb.append(String.format("import %s.%s;\n", ENTITY_PACKAGE, paramType));
+                		imports.add(ENTITY_PACKAGE + "." + paramType);
             	}
         	}
     	}    	
+    	
+    	for(String importString : imports) {
+    		fb.append("import ");
+    		fb.append(importString);
+    		fb.append(";\n");
+    	}
     	
     	// Path anno
     	fb.append("\n@Path(\"/\")");
