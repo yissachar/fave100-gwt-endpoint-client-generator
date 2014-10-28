@@ -21,7 +21,7 @@ public class App
 	private static String ENTITY_PACKAGE = "com.fave100.client.generated.entities";
 	private static String SERVICE_PACKAGE = "com.fave100.client.generated.services";
 	
-	private static String folderPath = "F:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\src\\main\\java\\com\\fave100\\client\\generated\\";
+	private static String folderPath = "F:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspaceNew\\fave100\\src\\main\\java\\com\\fave100\\client\\generated\\";
 	private static String servicePath = "";
 	private static String entitiesPath = "";
 	private static List<String> services = new ArrayList<>();
@@ -33,7 +33,7 @@ public class App
         
         // TODO: Remove all the harcoding paths
         // Run AppEngine Endpoints tool to get the latest discovery doc
-        String discoveryDocFolder = "F:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspace\\fave100\\src\\main\\webapp\\apidocs";
+        String discoveryDocFolder = "F:\\Users\\yissachar.radcliffe\\dev\\EclipseWorkspaceNew\\fave100\\src\\main\\webapp\\apidocs";
         
         servicePath = folderPath + "\\services\\";
         entitiesPath = folderPath + "\\entities\\";
@@ -171,23 +171,29 @@ public class App
                 	// Add @QueryParam or @PathParam anno if needed 
                 	String paramType = (String)param.get("paramType");
                 	String paramName = (String)param.get("name");
+                	String type = (String)param.get("type");
                 	
-        			if(paramType.equals("query")) {
-        				fb.append(String.format("@QueryParam(\"%s\") ", paramName));
-        			} else if(paramType.equals("path")) {
-        				fb.append(String.format("@PathParam(\"%s\") ", paramName));
-        			} 
+                	if(!type.equals("AppUser")) {
+	        			if(paramType.equals("query")) {
+	        				fb.append(String.format("@QueryParam(\"%s\") ", paramName));
+	        			} else if(paramType.equals("path")) {
+	        				fb.append(String.format("@PathParam(\"%s\") ", paramName));
+	        			} 
                 	
-        			if(paramType.equals("body")) {
-        				fb.append(ucFirst((String)param.get("type")));
-        			} else {
-        				fb.append(getClassName((String)param.get("type")));
-        			}
-                	fb.append(" ");
-                	fb.append(paramName);
+        			
+	        			if(paramType.equals("body")) {
+	        				fb.append(ucFirst(type));
+	        			} else {
+	        				fb.append(getClassName(type));
+	        			}
+        			
+	                	fb.append(" ");
+	                	fb.append(paramName);
                 	
-                	if(length > 1 && i != length)
-                		fb.append(", ");
+	                	if(length > 1 && i != length) {
+	                		fb.append(", ");
+        				}
+            		}
                 	
                 	i++;
             	}
